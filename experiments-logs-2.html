@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Experiments Tracker</title>
+    <style>
+        /* Notion-Inspired Design Refresh */
+        :root {
+            --background-color: #ffffff;
+            --card-background: #f7f7f5; /* Lighter grey */
+            --text-color: #37352f;    /* Notion's primary text */
+            --secondary-text-color: #9b9a97; /* Notion's muted text */
+            --border-color: #eaeaec;    /* Notion's subtle border */
+            --accent-color: #000;    /* A calmer blue */
+            --danger-color: #e03e3e;    /* Notion's red */
+            --focus-ring-color: rgba(38, 139, 210, 0.4); /* Accent color with alpha */
+
+            --base-font-size: 16px;
+            --spacing-unit: 0.5rem; /* 8px if base is 16px */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Common sans-serif stack */
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-size: var(--base-font-size);
+            line-height: 1.6; /* Slightly more spacious */
+        }
+
+        /* App Container */
+        .app-container {
+            max-width: 700px; /* Slightly wider max-width */
+            margin: 0 auto;
+            padding: calc(var(--spacing-unit) * 3); /* 24px */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: var(--background-color);
+        }
+
+        /* Views */
+        .view { display: none; flex-direction: column; flex-grow: 1; }
+        .view.active { display: flex; }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: calc(var(--spacing-unit) * 3); /* 24px */
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            /* border-bottom: 1px solid var(--border-color); Removed border for cleaner look */
+        }
+
+        .header h1 {
+            font-size: 1.75rem; /* 28px */
+            font-weight: 600;
+        }
+
+        /* Buttons */
+        button, .button {
+            padding: calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 2.5); /* 12px 20px */
+            font-size: 0.95rem; /* 15px */
+            border: none;
+            border-radius: 6px; /* Slightly less rounded */
+            cursor: pointer;
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: 500;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            line-height: 1.4; /* Ensure text vertical alignment */
+        }
+
+        button:hover, .button:hover {
+            filter: brightness(0.95);
+        }
+        button:active, .button:active {
+             filter: brightness(0.9);
+        }
+
+        button.secondary, .button.secondary {
+             background-color: var(--card-background);
+             color: var(--text-color); /* Use primary text for secondary */
+             border: 1px solid var(--border-color);
+        }
+         button.secondary:hover, .button.secondary:hover {
+             background-color: #eee; /* Slightly darker hover */
+             filter: none;
+         }
+
+         button.danger, .button.danger {
+             background-color: var(--danger-color);
+             color: white;
+         }
+
+        button.link-style {
+            background: none;
+            color: var(--accent-color);
+            padding: var(--spacing-unit); /* 8px */
+            font-size: 1rem; /* 16px */
+            font-weight: 500;
+        }
+         button.link-style.danger { color: var(--danger-color); }
+         button.link-style:hover { background-color: rgba(0,0,0,0.05); filter: none; }
+
+
+        /* Experiment List */
+        #experiment-list {
+            list-style: none;
+            padding: 0;
+            flex-grow: 1;
+        }
+
+        #experiment-list li {
+            /* background-color: var(--card-background); */ /* Removed card background for cleaner list */
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: calc(var(--spacing-unit) * 2.5); /* 20px */
+            margin-bottom: calc(var(--spacing-unit) * 2); /* 16px */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: background-color 0.15s ease, box-shadow 0.15s ease;
+        }
+         #experiment-list li:hover {
+             background-color: var(--card-background); /* Show subtle background on hover */
+             /* box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); */ /* Optional subtle shadow */
+         }
+
+        .experiment-icon {
+            font-size: 1.5rem; /* 24px */
+            margin-right: calc(var(--spacing-unit) * 2.5); /* 20px */
+            flex-shrink: 0;
+            /* Removed background circle for cleaner look */
+            width: auto; height: auto; border-radius: 0; background-color: transparent; display: inline;
+        }
+
+        .experiment-info { flex-grow: 1; }
+
+        .experiment-name {
+            font-weight: 500;
+            font-size: 1.1rem; /* 17-18px */
+            color: var(--text-color);
+            margin-bottom: calc(var(--spacing-unit) * 0.5); /* 4px */
+        }
+
+        .experiment-progress-info {
+            font-size: 0.9rem; /* 14px */
+            color: var(--secondary-text-color);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: calc(var(--spacing-unit) * 3); /* 24px */
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: var(--spacing-unit); /* 8px */
+            color: var(--text-color); /* Label text less muted */
+            font-size: 0.9rem; /* 14px */
+            /* text-transform: uppercase; Removed uppercase */
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: calc(var(--spacing-unit) * 1.5); /* 12px */
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem; /* 16px */
+            background-color: var(--background-color); /* White background */
+            color: var(--text-color);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+         .form-group textarea {
+             min-height: 120px;
+             resize: vertical;
+             line-height: 1.6;
+         }
+         /* Select arrow styling */
+         .form-group select {
+             -webkit-appearance: none; appearance: none;
+             background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239b9a97%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+             background-repeat: no-repeat; background-position: right 12px center; background-size: .7em auto;
+             padding-right: calc(var(--spacing-unit) * 5); /* Make space for arrow */
+         }
+
+
+         .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+             outline: none;
+             border-color: var(--accent-color);
+             box-shadow: 0 0 0 2px var(--focus-ring-color);
+         }
+
+        .form-actions { /* Keeping this class if needed elsewhere, but not used for main form save */
+             margin-top: calc(var(--spacing-unit) * 4); display: flex; justify-content: space-between; gap: calc(var(--spacing-unit) * 2);
+        }
+         .form-actions button { flex-grow: 1; }
+
+        /* Experiment Detail View */
+        #experiment-detail-view .header { margin-bottom: var(--spacing-unit); padding-bottom: var(--spacing-unit); }
+
+        #experiment-detail-view .experiment-name-detail {
+            font-size: 1.75rem; /* 28px */
+            font-weight: 600;
+            margin-bottom: var(--spacing-unit); /* 8px */
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-unit); /* 8px */
+         }
+         .detail-icon {
+            font-size: 1.25rem; /* 20px */
+            /* Keep subtle icon styling if needed */
+            width: auto; height: auto; border-radius: 0; background-color: transparent; display: inline;
+            color: var(--secondary-text-color); /* Make icon less prominent */
+         }
+
+        #experiment-detail-view .hypothesis {
+            color: var(--secondary-text-color);
+            margin-bottom: calc(var(--spacing-unit) * 4); /* 32px */
+            font-size: 1.05rem; /* ~17px */
+            background-color: var(--card-background); /* Give hypothesis a subtle background */
+            padding: var(--spacing-unit) * 2; /* 16px */
+            border-radius: 6px;
+        }
+
+        .progress-section {
+             background-color: var(--card-background);
+             padding: calc(var(--spacing-unit) * 3); /* 24px */
+             border-radius: 8px;
+             margin-bottom: calc(var(--spacing-unit) * 4); /* 32px */
+        }
+        .progress-label {
+             display: flex; justify-content: space-between;
+             margin-bottom: calc(var(--spacing-unit) * 1.5); /* 12px */
+             font-size: 0.9rem; /* 14px */
+             color: var(--secondary-text-color); font-weight: 500;
+        }
+        .progress-bar-container {
+            width: 100%; height: 8px; background-color: var(--border-color);
+            border-radius: 4px; overflow: hidden;
+            margin-bottom: calc(var(--spacing-unit) * 3); /* 24px */
+        }
+        .progress-bar { height: 100%; width: 0%; background-color: var(--accent-color); border-radius: 4px; transition: width 0.3s ease; }
+
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: calc(var(--spacing-unit) * 3); /* 24px */
+            text-align: center;
+        }
+
+        .stat-item .value {
+            font-size: 1.75rem; /* 28px - Make streak stand out */
+            font-weight: 600; /* Bold */
+            line-height: 1.2;
+            color: var(--text-color);
+        }
+         /* Specific style for streak emoji */
+         .stat-item .value .streak-fire { display: inline-block; margin-left: 2px; }
+
+        .stat-item .label {
+            font-size: 0.8rem; /* 12-13px */
+            color: var(--secondary-text-color);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .details-section h3, .log-section h3 {
+            font-size: 1.1rem; /* ~18px */
+            font-weight: 600;
+            margin-bottom: var(--spacing-unit); /* 8px */
+            margin-top: calc(var(--spacing-unit) * 4); /* 32px */
+            padding-bottom: var(--spacing-unit); /* 8px */
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .detail-item {
+            display: flex; justify-content: space-between;
+            padding: calc(var(--spacing-unit) * 1.5) 0; /* 12px */
+            border-bottom: 1px solid var(--border-color);
+            font-size: 1rem; /* 16px */
+        }
+        .detail-item:last-child { border-bottom: none; }
+        .detail-item .label { color: var(--secondary-text-color); }
+        .detail-item .value { font-weight: 500; color: var(--text-color); }
+
+        /* Log History */
+        #log-list { list-style: none; padding: 0; }
+        #log-list li {
+            background-color: var(--card-background);
+            border-radius: 6px;
+            padding: calc(var(--spacing-unit) * 2); /* 16px */
+            margin-bottom: calc(var(--spacing-unit) * 1.5); /* 12px */
+        }
+        .log-date { font-size: 0.85rem; color: var(--secondary-text-color); margin-bottom: var(--spacing-unit); }
+        .log-observation { font-size: 1rem; line-height: 1.6; white-space: pre-wrap; /* Preserve line breaks */ }
+        .no-logs, .placeholder-text {
+            text-align: center; color: var(--secondary-text-color);
+            padding: calc(var(--spacing-unit) * 4) 0; /* 32px */
+            font-style: italic;
+        }
+
+
+        .detail-actions {
+            margin-top: calc(var(--spacing-unit) * 4); /* 32px */
+            padding-bottom: calc(var(--spacing-unit) * 3); /* 24px */
+             display: flex;
+             justify-content: center;
+             gap: calc(var(--spacing-unit) * 2); /* 16px */
+             flex-wrap: wrap; /* Allow buttons to wrap on small screens */
+        }
+         .detail-actions .button.secondary { /* Style quick check-in */
+             font-weight: 400;
+         }
+
+
+        .delete-action {
+             margin-top: calc(var(--spacing-unit) * 4);
+             text-align: center; padding-bottom: calc(var(--spacing-unit) * 2);
+        }
+
+        /* Log Entry View */
+         #log-entry-form-view .header { margin-bottom: var(--spacing-unit); padding-bottom: 0; }
+         #log-entry-form-view h2 {
+             font-size: 1.5rem; font-weight: 600; text-align: center;
+             margin-bottom: var(--spacing-unit);
+         }
+         #log-entry-form-view .current-date {
+            text-align: center; color: var(--secondary-text-color);
+            margin-bottom: calc(var(--spacing-unit) * 2); /* 16px */
+            font-size: 0.9rem;
+         }
+         #log-entry-hypothesis {
+             background-color: var(--card-background);
+             padding: var(--spacing-unit) * 2;
+             border-radius: 6px;
+             margin-bottom: calc(var(--spacing-unit) * 3);
+             color: var(--secondary-text-color);
+             font-size: 0.95rem;
+             font-style: italic;
+         }
+         #log-entry-hypothesis strong { color: var(--text-color); font-style: normal; font-weight: 500; }
+
+
+        /* Utility */
+        .text-center { text-align: center; }
+        .secondary-text-color { color: var(--secondary-text-color); }
+
+    </style>
+</head>
+<body>
+    <div class="app-container">
+
+        <!-- Experiment List View -->
+        <div id="experiment-list-view" class="view active">
+            <div class="header">
+                <h1>Experiments</h1>
+                <button id="add-experiment-btn">Add</button>
+            </div>
+            <ul id="experiment-list">
+                 <p class="placeholder-text" id="no-experiments-message" style="display: none;">No experiments yet. Tap "Add" to start!</p>
+                <!-- Experiments loaded here -->
+            </ul>
+        </div>
+
+        <!-- Add/Edit Experiment Form View -->
+        <div id="experiment-form-view" class="view">
+             <div class="header">
+                <button class="link-style" id="cancel-form-btn">Cancel</button>
+                <h1 id="form-title">New Experiment</h1>
+                <button class="link-style" id="save-experiment-btn">Save</button>
+            </div>
+            <form id="experiment-form">
+                <input type="hidden" id="experiment-id">
+                <div class="form-group">
+                    <label for="experiment-name">Experiment Name</label>
+                    <input type="text" id="experiment-name" required placeholder="e.g., Daily Cold Showers">
+                </div>
+                <div class="form-group">
+                    <label for="experiment-hypothesis">Hypothesis / Goal</label>
+                    <textarea style="padding: 4px;" id="experiment-hypothesis" placeholder="If I [Action], then I expect [Outcome] because [Reason]. How will I measure success? (Optional)"></textarea>
+                </div>
+                 <div class="form-group">
+                    <label for="experiment-icon-select">Icon</label>
+                    <select id="experiment-icon-select" class="form-group">
+                        <!-- Options unchanged -->
+                         <option value="🧪">🧪 Lab Flask</option>
+                         <option value="💪">💪 Bicep</option>
+                         <option value="🚿">🚿 Shower</option>
+                         <option value="🧘">🧘 Meditation</option>
+                         <option value="📱">📱 Phone</option>
+                         <option value="🥬">🥬 Leafy Green</option>
+                         <option value="💧">💧 Water Drop</option>
+                         <option value="☀️">☀️ Sun</option>
+                         <option value="🌙">🌙 Moon</option>
+                         <option value="📖">📖 Book</option>
+                         <option value="🏃">🏃 Runner</option>
+                         <option value="🎯">🎯 Target</option>
+                         <option value="💡">💡 Lightbulb</option>
+                         <option value="⚙️">⚙️ Gear</option>
+                         <option value="📊">📊 Chart</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="experiment-duration">Duration (Days)</label>
+                    <input type="number" id="experiment-duration" required min="1" placeholder="e.g., 30">
+                </div>
+                 <input type="hidden" id="experiment-frequency" value="Daily">
+            </form>
+        </div>
+
+        <!-- Experiment Detail View -->
+        <div id="experiment-detail-view" class="view">
+             <div class="header">
+                <button class="link-style" id="back-to-list-btn">< Experiments</button>
+                <!-- Optional Edit Button -->
+             </div>
+             <h2 class="experiment-name-detail"><span class="detail-icon" id="detail-icon-display"></span><span id="detail-name"></span></h2>
+             <p class="hypothesis" id="detail-hypothesis" style="padding: 4px;"></p>
+
+            <div class="progress-section">
+                 <div class="progress-label">
+                     <span>Progress</span>
+                     <span id="progress-fraction">0/0 Days</span>
+                 </div>
+                 <div class="progress-bar-container">
+                    <div class="progress-bar" id="detail-progress-bar"></div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="value" id="detail-streak">0<span class="streak-fire"> 🔥</span></div>
+                        <div class="label">Streak</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="value" id="detail-checkins">0</div>
+                        <div class="label">Check-ins</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="value" id="detail-score">0%</div>
+                        <div class="label">Score</div>
+                    </div>
+                </div>
+             </div>
+
+
+            <div class="details-section">
+                <h3>Details</h3>
+                 <div class="detail-item"> <span class="label">Frequency</span> <span class="value" id="detail-frequency">Daily</span> </div>
+                 <div class="detail-item"> <span class="label">Duration</span> <span class="value" id="detail-duration">0 days</span> </div>
+                 <div class="detail-item"> <span class="label">Start Date</span> <span class="value" id="detail-start-date"></span> </div>
+                 <div class="detail-item"> <span class="label">End Date</span> <span class="value" id="detail-end-date"></span> </div>
+            </div>
+
+            <div class="log-section">
+                 <h3>Log History</h3>
+                 <ul id="log-list"></ul>
+                 <p class="no-logs" id="no-logs-message" style="display: none;">No check-ins yet.</p>
+            </div>
+
+             <div class="detail-actions">
+                 <button id="mark-done-btn" class="button secondary">✓ Mark Done Today</button> <!-- Quick Check-in -->
+                 <button id="add-log-entry-btn" class="button">Add Log Entry</button>
+             </div>
+              <div class="delete-action">
+                 <button class="link-style danger" id="delete-experiment-btn">Delete Experiment</button>
+             </div>
+
+        </div>
+
+        <!-- Log Entry Form View -->
+        <div id="log-entry-form-view" class="view">
+             <div class="header">
+                <button class="link-style" id="cancel-log-btn">Cancel</button>
+                <span style="flex-grow: 1;"></span> <!-- Spacer -->
+                <button class="link-style" id="save-log-btn">Save</button>
+            </div>
+             <h2>Log Entry</h2>
+             <p class="current-date" id="log-entry-date"></p>
+             <div id="log-entry-hypothesis">
+                 <strong>Hypothesis:</strong> <span id="log-hypothesis-text"></span>
+             </div>
+            <form id="log-entry-form">
+                <input type="hidden" id="log-experiment-id">
+                 <div class="form-group">
+                    <label for="log-observation">Observations</label>
+                    <textarea id="log-observation" placeholder="How did it go today? What went well? Challenges? Unexpected effects? Progress towards goal?"></textarea>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const Views = {
+                LIST: 'experiment-list-view',
+                FORM: 'experiment-form-view',
+                DETAIL: 'experiment-detail-view',
+                LOG: 'log-entry-form-view'
+            };
+
+            let experiments = [];
+            let currentDetailExperimentId = null;
+
+            // --- DOM Elements ---
+            const noExperimentsMessage = document.getElementById('no-experiments-message');
+            const experimentListEl = document.getElementById('experiment-list');
+            const addExperimentBtn = document.getElementById('add-experiment-btn');
+            const saveExperimentBtn = document.getElementById('save-experiment-btn');
+            const cancelFormBtn = document.getElementById('cancel-form-btn');
+            const experimentForm = document.getElementById('experiment-form');
+            const experimentIdInput = document.getElementById('experiment-id');
+            const experimentNameInput = document.getElementById('experiment-name');
+            const experimentHypothesisInput = document.getElementById('experiment-hypothesis');
+            const experimentDurationInput = document.getElementById('experiment-duration');
+            const experimentFrequencyInput = document.getElementById('experiment-frequency');
+            const experimentIconSelect = document.getElementById('experiment-icon-select');
+            const formTitle = document.getElementById('form-title');
+
+            const backToListBtn = document.getElementById('back-to-list-btn');
+            const detailIconDisplayEl = document.getElementById('detail-icon-display'); // Updated ID/selector
+            const detailNameEl = document.getElementById('detail-name');
+            const detailHypothesisEl = document.getElementById('detail-hypothesis');
+            const detailProgressBar = document.getElementById('detail-progress-bar');
+            const progressFractionEl = document.getElementById('progress-fraction');
+            const detailStreakEl = document.getElementById('detail-streak');
+            const detailCheckinsEl = document.getElementById('detail-checkins');
+            const detailScoreEl = document.getElementById('detail-score');
+            const detailFrequencyEl = document.getElementById('detail-frequency');
+            const detailDurationEl = document.getElementById('detail-duration');
+            const detailStartDateEl = document.getElementById('detail-start-date');
+            const detailEndDateEl = document.getElementById('detail-end-date');
+            const logListEl = document.getElementById('log-list');
+            const noLogsMessage = document.getElementById('no-logs-message');
+            const addLogEntryBtn = document.getElementById('add-log-entry-btn');
+            const markDoneBtn = document.getElementById('mark-done-btn'); // Quick Check-in Button
+            const deleteExperimentBtn = document.getElementById('delete-experiment-btn');
+
+            const logEntryForm = document.getElementById('log-entry-form');
+            const logExperimentIdInput = document.getElementById('log-experiment-id');
+            const logObservationInput = document.getElementById('log-observation');
+            const saveLogBtn = document.getElementById('save-log-btn');
+            const cancelLogBtn = document.getElementById('cancel-log-btn');
+            const logEntryDateEl = document.getElementById('log-entry-date');
+            const logHypothesisTextEl = document.getElementById('log-hypothesis-text'); // Hypothesis display on log screen
+
+
+            // --- Utility Functions ---
+            const showView = (viewId) => {
+                document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+                document.getElementById(viewId).classList.add('active');
+                window.scrollTo(0, 0);
+            };
+
+            const formatDate = (dateString) => {
+                 if (!dateString) return 'N/A';
+                 try {
+                    const date = new Date(dateString);
+                    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+                    return date.toLocaleDateString(undefined, options);
+                 } catch (e) { return 'Invalid Date'; }
+            };
+
+             const formatDateTime = (dateString) => {
+                 if (!dateString) return 'N/A';
+                 try {
+                     const date = new Date(dateString);
+                     const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+                     const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+                     return `${date.toLocaleDateString(undefined, dateOptions)} at ${date.toLocaleTimeString(undefined, timeOptions)}`;
+                 } catch (e) { return 'Invalid Date'; }
+             };
+
+             const getTodayDateString = () => {
+                 const today = new Date();
+                 today.setHours(0, 0, 0, 0);
+                 return today.toISOString().split('T')[0];
+             };
+
+             const addDays = (date, days) => {
+                 const result = new Date(date);
+                 result.setDate(result.getDate() + days);
+                 return result;
+             };
+
+              // --- Simple Sanitize ---
+             const sanitizeHTML = (str) => {
+                const temp = document.createElement('div');
+                temp.textContent = str;
+                return temp.innerHTML;
+             };
+
+
+            // --- Data Handling ---
+            const loadExperiments = () => {
+                const storedExperiments = localStorage.getItem('experiments');
+                try {
+                    experiments = storedExperiments ? JSON.parse(storedExperiments) : [];
+                    if (!Array.isArray(experiments)) experiments = []; // Ensure it's an array
+                } catch (e) {
+                    console.error("Error parsing experiments from localStorage:", e);
+                    experiments = []; // Reset if parsing fails
+                    localStorage.removeItem('experiments'); // Clear corrupted data
+                }
+                 experiments.forEach(exp => {
+                     if (!exp.logs || !Array.isArray(exp.logs)) exp.logs = [];
+                 });
+            };
+
+            const saveExperiments = () => {
+                try {
+                     localStorage.setItem('experiments', JSON.stringify(experiments));
+                 } catch (e) {
+                     console.error("Error saving experiments to localStorage:", e);
+                     alert("Could not save experiments. LocalStorage might be full or disabled.");
+                 }
+            };
+
+            const getExperimentById = (id) => {
+                return experiments.find(exp => exp.id === id);
+            };
+
+            // --- Rendering Functions ---
+            const renderExperimentList = () => {
+                experimentListEl.innerHTML = ''; // Clear existing list
+                noExperimentsMessage.style.display = experiments.length === 0 ? 'block' : 'none';
+
+                // Sort experiments maybe? (e.g., by start date descending)
+                 const sortedExperiments = [...experiments].sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+
+
+                sortedExperiments.forEach(exp => {
+                    const li = document.createElement('li');
+                    li.dataset.id = exp.id;
+
+                    const { loggedDays, totalDays, elapsedDays } = calculateProgress(exp);
+                    // Display day number based on elapsed time, capped by duration
+                    const currentDayNumber = Math.min(elapsedDays, totalDays);
+
+                    li.innerHTML = `
+                        <div class="experiment-icon">${sanitizeHTML(exp.icon || '🧪')}</div>
+                        <div class="experiment-info">
+                            <div class="experiment-name">${sanitizeHTML(exp.name)}</div>
+                            <div class="experiment-progress-info">Day ${currentDayNumber} of ${totalDays} · ${sanitizeHTML(exp.frequency)}</div>
+                        </div>
+                    `;
+                    li.addEventListener('click', () => {
+                        currentDetailExperimentId = exp.id;
+                        renderExperimentDetail(exp.id);
+                        showView(Views.DETAIL);
+                    });
+                    experimentListEl.appendChild(li);
+                });
+            };
+
+            const calculateProgress = (experiment) => {
+                 if (!experiment || !experiment.startDate || !experiment.duration) {
+                     console.warn("Invalid experiment data for progress calculation:", experiment);
+                     return { completedDays: 0, totalDays: 0, elapsedDays: 0, loggedDays: 0, progressPercent: 0,              endDate: null }; // Added default null endDate
+                 }
+
+                 const today = new Date();
+                 today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
+                 let startDate;
+                 try {
+                    startDate = new Date(experiment.startDate);
+                    if (isNaN(startDate.getTime())) throw new Error('Invalid start date');
+                    startDate.setHours(0, 0, 0, 0); // Normalize start date
+                 } catch(e) {
+                     console.error("Error parsing start date:", e, experiment.startDate);
+                     return { completedDays: 0, totalDays: 0, elapsedDays: 0, loggedDays: 0, progressPercent: 0, endDate: null };
+                 }
+
+                 const totalDays = parseInt(experiment.duration, 10);
+                 if (isNaN(totalDays) || totalDays <= 0) {
+                     console.warn("Invalid duration:", experiment.duration);
+                     return { completedDays: 0, totalDays: 0, elapsedDays: 0, loggedDays: 0, progressPercent: 0, endDate: startDate }; // Or null?
+                 }
+
+                 const endDate = addDays(startDate, totalDays - 1); // -1 because duration includes start day
+                 endDate.setHours(23, 59, 59, 999); // End of the last day
+
+                 // Calculate elapsed days since the start date, capped by today and total duration
+                 let elapsedDays = 0;
+                 if (today >= startDate) {
+                    elapsedDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                 }
+                 elapsedDays = Math.max(0, elapsedDays); // Ensure non-negative
+                 elapsedDays = Math.min(elapsedDays, totalDays); // Cap at total duration
+
+                 // Calculate unique days logged within the experiment's active period (up to today, capped by end date)
+                 const loggedDaysSet = new Set();
+                 if (experiment.logs && Array.isArray(experiment.logs)) {
+                     experiment.logs.forEach(log => {
+                        try {
+                             const logDate = new Date(log.timestamp);
+                             if (isNaN(logDate.getTime())) return; // Skip invalid log dates
+
+                             logDate.setHours(0, 0, 0, 0); // Normalize log date
+
+                             // Check if log date is within experiment start/end AND not in the future relative to 'today'
+                             if (logDate >= startDate && logDate <= endDate && logDate <= today) {
+                                 loggedDaysSet.add(logDate.toISOString().split('T')[0]);
+                             }
+                         } catch(e) {
+                             console.warn("Error processing log timestamp:", log.timestamp, e);
+                         }
+                     });
+                 }
+                 const loggedDays = loggedDaysSet.size;
+
+                 // Progress percentage based on logged days vs total duration
+                 const progressPercent = totalDays > 0 ? (loggedDays / totalDays) * 100 : 0;
+
+                 // Note: 'completedDays' was ambiguous. Let's rely on elapsedDays and loggedDays.
+                 // If needed, completedDays (0-indexed) could be Math.max(0, elapsedDays - 1);
+
+                 return {
+                     // completedDays: Math.max(0, elapsedDays - 1), // 0-indexed day number *that has passed*
+                     totalDays,
+                     elapsedDays, // How many days (1-indexed) have passed since start (capped by duration and today)
+                     loggedDays,  // Unique days checked in within the active period
+                     progressPercent: Math.round(progressPercent),
+                     endDate
+                 };
+             };
+
+             const calculateStats = (experiment) => {
+                 if (!experiment || !experiment.startDate || !experiment.duration || !experiment.logs) {
+                     return { checkIns: 0, streak: 0, score: 0, loggedToday: false };
+                 }
+
+                 const todayStr = getTodayDateString();
+                 let startDate;
+                 try {
+                    startDate = new Date(experiment.startDate);
+                     if (isNaN(startDate.getTime())) throw new Error('Invalid start date');
+                    startDate.setHours(0, 0, 0, 0);
+                 } catch(e) {
+                     return { checkIns: 0, streak: 0, score: 0, loggedToday: false };
+                 }
+
+                 // --- Logged Days Set ---
+                 const uniqueLogDays = new Set();
+                 let loggedToday = false;
+                 if (Array.isArray(experiment.logs)) {
+                    experiment.logs.forEach(log => {
+                        try {
+                            const logDate = new Date(log.timestamp);
+                            if (isNaN(logDate.getTime())) return;
+                            logDate.setHours(0,0,0,0);
+                            const logDateStr = logDate.toISOString().split('T')[0];
+                            uniqueLogDays.add(logDateStr);
+                            if (logDateStr === todayStr) {
+                                loggedToday = true;
+                            }
+                        } catch (e) { console.warn("Error processing log timestamp for stats:", log.timestamp, e); }
+                    });
+                 }
+
+
+                 // --- Streak Calculation (Daily only) ---
+                 let streak = 0;
+                 let currentCheckDate = new Date(); // Start checking from today
+                 currentCheckDate.setHours(0, 0, 0, 0);
+
+                 while (currentCheckDate >= startDate) {
+                     const checkDateStr = currentCheckDate.toISOString().split('T')[0];
+                     if (uniqueLogDays.has(checkDateStr)) {
+                         streak++;
+                         currentCheckDate.setDate(currentCheckDate.getDate() - 1); // Move to previous day
+                     } else {
+                         // If today wasn't logged, the streak is 0, regardless of yesterday
+                         if(checkDateStr === todayStr) {
+                             streak = 0;
+                         }
+                         // If checking past days and a day is missed, the streak calculation stops here.
+                         break;
+                     }
+                 }
+
+
+                 // --- Score Calculation ---
+                 const { loggedDays, elapsedDays } = calculateProgress(experiment);
+                 // Score: Percentage of *elapsed* days that have been logged
+                 const score = elapsedDays > 0 ? Math.round((loggedDays / elapsedDays) * 100) : 0;
+
+                 return {
+                     checkIns: experiment.logs.length, // Total number of log entries
+                     streak: streak,
+                     score: score,
+                     loggedToday: loggedToday // Boolean flag
+                 };
+             };
+
+
+             const renderExperimentDetail = (id) => {
+                 const experiment = getExperimentById(id);
+                 if (!experiment) {
+                     showView(Views.LIST);
+                     return;
+                 }
+
+                 // Basic Info
+                 detailIconDisplayEl.textContent = sanitizeHTML(experiment.icon || '🧪');
+                 detailNameEl.textContent = sanitizeHTML(experiment.name);
+                 detailHypothesisEl.textContent = sanitizeHTML(experiment.hypothesis || 'No hypothesis provided.');
+
+                 // Progress & Stats
+                 const { totalDays, progressPercent, endDate, loggedDays } = calculateProgress(experiment);
+                 const { checkIns, streak, score, loggedToday } = calculateStats(experiment);
+
+                 // Use loggedDays for the numerator for clarity on check-ins vs goal
+                 progressFractionEl.textContent = `${loggedDays} / ${totalDays} Days Checked`;
+                 detailProgressBar.style.width = `${progressPercent}%`;
+                 detailCheckinsEl.textContent = checkIns; // Total logs count
+                 detailStreakEl.innerHTML = `${streak}<span class="streak-fire"> 🔥</span>`; // Use innerHTML for span
+                 detailScoreEl.textContent = `${score}%`;
+
+                 // Details Section
+                 detailFrequencyEl.textContent = sanitizeHTML(experiment.frequency);
+                 detailDurationEl.textContent = `${experiment.duration} days`;
+                 detailStartDateEl.textContent = formatDate(experiment.startDate);
+                 detailEndDateEl.textContent = endDate ? formatDate(endDate.toISOString()) : 'N/A';
+
+
+                 // Log History
+                 logListEl.innerHTML = ''; // Clear previous logs
+                 if (experiment.logs && experiment.logs.length > 0) {
+                     const sortedLogs = [...experiment.logs].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                     sortedLogs.forEach(log => {
+                         const li = document.createElement('li');
+                         li.innerHTML = `
+                             <div class="log-date">${formatDateTime(log.timestamp)}</div>
+                             <div class="log-observation">${sanitizeHTML(log.observation || 'Marked as done.')}</div> <!-- Default text for quick check-in -->
+                         `;
+                         logListEl.appendChild(li);
+                     });
+                     noLogsMessage.style.display = 'none';
+                 } else {
+                     noLogsMessage.style.display = 'block';
+                 }
+
+                 // Enable/Disable Quick Check-in button
+                 markDoneBtn.disabled = loggedToday;
+                 markDoneBtn.textContent = loggedToday ? '✓ Done Today' : '✓ Mark Done Today';
+                 // Also consider disabling full log entry if already logged? Or allow multiple logs per day? Let's allow multiple for now.
+                 // addLogEntryBtn.disabled = loggedToday;
+
+
+             };
+
+             const renderLogEntryForm = (experimentId) => {
+                 const experiment = getExperimentById(experimentId);
+                 if (!experiment) return;
+
+                 logExperimentIdInput.value = experimentId;
+                 logObservationInput.value = ''; // Clear previous observations
+                 logEntryDateEl.textContent = `Logging for: ${formatDate(new Date().toISOString())}`;
+                 logHypothesisTextEl.textContent = sanitizeHTML(experiment.hypothesis || 'N/A');
+                 showView(Views.LOG);
+                 logObservationInput.focus(); // Focus textarea
+             };
+
+             // --- Event Listeners ---
+             addExperimentBtn.addEventListener('click', () => {
+                 formTitle.textContent = 'New Experiment';
+                 experimentForm.reset();
+                 experimentIconSelect.value = '🧪';
+                 experimentIdInput.value = '';
+                 showView(Views.FORM);
+                 experimentNameInput.focus();
+             });
+
+             cancelFormBtn.addEventListener('click', () => {
+                 showView(Views.LIST);
+             });
+
+             saveExperimentBtn.addEventListener('click', (e) => {
+                 e.preventDefault();
+
+                 const name = experimentNameInput.value.trim();
+                 const duration = experimentDurationInput.value.trim();
+
+                 if (!name || !duration || parseInt(duration) <= 0) {
+                     alert('Please enter a valid name and duration (must be > 0).');
+                     return;
+                 }
+
+                 const id = experimentIdInput.value || `exp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+                 const isEditing = !!experimentIdInput.value;
+                 const existingExperiment = isEditing ? getExperimentById(id) : null;
+
+                 const experimentData = {
+                     id: id,
+                     name: name,
+                     hypothesis: experimentHypothesisInput.value.trim(),
+                     icon: experimentIconSelect.value,
+                     // Keep original start date if editing, otherwise set to now
+                     startDate: isEditing && existingExperiment ? existingExperiment.startDate : new Date().toISOString(),
+                     frequency: experimentFrequencyInput.value, // Currently fixed to Daily
+                     duration: parseInt(duration),
+                     // Keep existing logs if editing, otherwise start fresh
+                     logs: isEditing && existingExperiment ? existingExperiment.logs : []
+                 };
+
+                 if (isEditing) {
+                     const existingIndex = experiments.findIndex(exp => exp.id === experimentData.id);
+                     if (existingIndex > -1) {
+                         experiments[existingIndex] = experimentData;
+                     } else {
+                         // This shouldn't happen if ID was set, but handle defensively
+                         experiments.push(experimentData);
+                     }
+                 } else {
+                     experiments.push(experimentData);
+                 }
+
+                 saveExperiments();
+                 renderExperimentList();
+                 showView(Views.LIST);
+             });
+
+
+             backToListBtn.addEventListener('click', () => {
+                 currentDetailExperimentId = null;
+                 showView(Views.LIST);
+             });
+
+             addLogEntryBtn.addEventListener('click', () => {
+                 if (currentDetailExperimentId) {
+                     renderLogEntryForm(currentDetailExperimentId);
+                 }
+             });
+
+             // Quick Check-in Listener
+             markDoneBtn.addEventListener('click', () => {
+                 if (!currentDetailExperimentId || markDoneBtn.disabled) return;
+
+                 const experiment = getExperimentById(currentDetailExperimentId);
+                 if (!experiment) return;
+
+                 // Check if already logged today (redundant check, but safe)
+                  const { loggedToday } = calculateStats(experiment);
+                  if (loggedToday) {
+                      alert("You've already checked in for today.");
+                      return;
+                  }
+
+
+                 const newLog = {
+                     id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                     timestamp: new Date().toISOString(),
+                     observation: "" // Empty observation for "Mark Done"
+                 };
+
+                 experiment.logs.push(newLog);
+                 saveExperiments();
+                 renderExperimentDetail(currentDetailExperimentId); // Update the detail view immediately
+                 // Optionally show a brief confirmation message
+             });
+
+
+             cancelLogBtn.addEventListener('click', () => {
+                  if (currentDetailExperimentId) {
+                     renderExperimentDetail(currentDetailExperimentId);
+                     showView(Views.DETAIL);
+                  } else {
+                     showView(Views.LIST);
+                  }
+             });
+
+             saveLogBtn.addEventListener('click', (e) => {
+                 e.preventDefault();
+
+                 const experimentId = logExperimentIdInput.value;
+                 const observation = logObservationInput.value.trim();
+                 const experiment = getExperimentById(experimentId);
+
+                 if (!experiment) return;
+
+                  // Check if already logged today - maybe allow multiple detailed logs?
+                  // Let's allow it for now. User might want to add more detail later.
+                 // const { loggedToday } = calculateStats(experiment);
+                 // if (loggedToday && !observation) { // Prevent saving empty log if already checked in
+                 //     alert("You've already checked in today. Add an observation if you want to log again.");
+                 //     return;
+                 // }
+
+
+                 const newLog = {
+                     id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                     timestamp: new Date().toISOString(),
+                     observation: observation // Save the observation text
+                 };
+
+                 experiment.logs.push(newLog);
+                 saveExperiments();
+                 renderExperimentDetail(experimentId);
+                 showView(Views.DETAIL);
+             });
+
+             deleteExperimentBtn.addEventListener('click', () => {
+                 if (!currentDetailExperimentId) return;
+
+                 const experiment = getExperimentById(currentDetailExperimentId);
+                 if (!experiment) return;
+
+                 // Use confirm() for simple confirmation
+                 if (confirm(`Are you sure you want to delete the experiment "${experiment.name}"? This action cannot be undone.`)) {
+                     experiments = experiments.filter(exp => exp.id !== currentDetailExperimentId);
+                     saveExperiments();
+                     currentDetailExperimentId = null;
+                     renderExperimentList();
+                     showView(Views.LIST);
+                 }
+             });
+
+
+             // --- Initialization ---
+             loadExperiments();
+             renderExperimentList();
+             showView(Views.LIST); // Start on the list view
+         });
+     </script>
+ </body>
+ </html>
